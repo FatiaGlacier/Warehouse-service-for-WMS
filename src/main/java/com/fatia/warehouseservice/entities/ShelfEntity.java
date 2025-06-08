@@ -25,23 +25,28 @@ public class ShelfEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "zone_id", nullable = false)
-    private ZoneEntity zone;
+    private ZoneEntity zone;// COLUMN zone
 
     private int originX;
 
     private int originY;
 
-    private int width;
+    private int width;// X
 
-    private int length;
+    private int length;// Y
 
-    private int height;
+    private int height;// Z
 
     private int level;
 
     private String description;
 
     private boolean isOccupied;
+
+    private boolean isActive;
+
+    @Column(name = "connected_node_id")
+    private String connectedNodeId;
 
     @Type(io.hypersistence.utils.hibernate.type.json.JsonBinaryType.class)
     @JdbcTypeCode(SqlTypes.JSON)

@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 public class ZoneModel {
     private Long id;
+    private String uuid;
     private String name;
     private String type;
     private int originX;
@@ -23,13 +24,17 @@ public class ZoneModel {
     private int height; // Y
     private String description;
     private List<ShelfModel> shelves;
+    private String connectedNodeId;
+    private Long parentZoneId;
+    private List<ZoneModel> childZones;
 
     public static ZoneModel toModel(ZoneEntity entity) {
         return ZoneModel
                 .builder()
                 .id(entity.getId())
+                .uuid(entity.getUuid())
                 .name(entity.getName())
-                .type(entity.getType())
+                .type(entity.getType().name())
                 .originX(entity.getOriginX())
                 .originY(entity.getOriginY())
                 .width(entity.getWidth())
@@ -41,6 +46,14 @@ public class ZoneModel {
                                 .map(ShelfModel::toModel)
                                 .collect(Collectors.toList())
                 )
+                .parentZoneId(entity.getParentZone().getId())
+                .childZones(
+                        entity.getChildZones()
+                                .stream()
+                                .map(ZoneModel::toModel)
+                                .collect(Collectors.toList())
+                )
+                .connectedNodeId(entity.getConnectedNodeId())
                 .build();
     }
 }

@@ -3,6 +3,7 @@ package com.fatia.warehouseservice.entities;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -18,9 +19,13 @@ public class ZoneEntity {
     @GeneratedValue
     private Long id;
 
+    @Column(unique = true, nullable = false)
+    private String uuid;
+
     private String name;
 
-    private String type;
+    @Enumerated(EnumType.STRING)
+    private ZoneTypes type;
 
     private int originX;
 
@@ -31,6 +36,16 @@ public class ZoneEntity {
     private int height; // Y
 
     private String description;
+
+    @Column(name = "connected_node_id")
+    private String connectedNodeId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_zone_id")
+    private ZoneEntity parentZone;
+
+    @OneToMany(mappedBy = "parentZone", cascade = CascadeType.ALL)
+    private List<ZoneEntity> childZones = new ArrayList<>();
 
     @OneToMany(
             mappedBy = "zone",

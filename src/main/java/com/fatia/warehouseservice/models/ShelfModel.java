@@ -24,7 +24,9 @@ public class ShelfModel {
     private int level;
     private String description;
     private boolean isOccupied;
+    private boolean isActive;
     private Map<String, String> conditions;
+    private String connectedNodeId;
 
     public static ShelfModel toModel(ShelfEntity entity) {
         return ShelfModel
@@ -40,7 +42,9 @@ public class ShelfModel {
                 .level(entity.getLevel())
                 .description(entity.getDescription())
                 .isOccupied(entity.isOccupied())
+                .isActive(entity.isActive())
                 .conditions(entity.getConditions())
+                .connectedNodeId(entity.getConnectedNodeId())
                 .build();
     }
 }

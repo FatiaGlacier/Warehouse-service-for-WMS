@@ -1,0 +1,19 @@
+package com.fatia.warehouseservice.requests;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class UpdateParentZoneRequest {
+    private String type;
+    private int originX;
+    private int originY;
+    private int width; // X
+    private int height; // Y
+    private String description;
+}
