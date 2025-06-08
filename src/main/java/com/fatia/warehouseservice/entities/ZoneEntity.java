@@ -27,9 +27,9 @@ public class ZoneEntity {
     @Enumerated(EnumType.STRING)
     private ZoneTypes type;
 
-    private int originX;
+    private int originX; // origin X relatively to parent
 
-    private int originY;
+    private int originY; // origin Y relatively to parent
 
     private int width; // X
 

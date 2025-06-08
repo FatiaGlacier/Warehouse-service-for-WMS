@@ -38,22 +38,12 @@ public class ZoneService {
     //For checkin is child object within parent object bounds
     public boolean isChildWithinParentBounds(
             int childOriginX, int childOriginY, int childWidth, int childLength,
-            int parentOriginX, int parentOriginY, int parentWidth, int parentLength) {
+            int parentWidth, int parentLength) {
 
-        return childOriginX >= parentOriginX
-                && childOriginY >= parentOriginY
-                && (childOriginX + childWidth) <= (parentOriginX + parentWidth)
-                && (childOriginY + childLength) <= (parentOriginY + parentLength);
-    }
-
-    public List<ZoneModel> getAll() {
-        List<ZoneEntity> entities = zoneRepository.findAll();
-        List<ZoneModel> models = new ArrayList<>();
-        for (ZoneEntity entity : entities) {
-            models.add(ZoneModel.toModel(entity));
-        }
-
-        return models;
+        return childOriginX >= 0
+                && childOriginY >= 0
+                && (childOriginX + childWidth) <= parentWidth
+                && (childOriginY + childLength) <= +parentLength;
     }
 
     public static boolean isOverlappingWithOthers(
@@ -84,6 +74,16 @@ public class ZoneService {
         }
 
         return false;
+    }
+
+    public List<ZoneModel> getAll() {
+        List<ZoneEntity> entities = zoneRepository.findAll();
+        List<ZoneModel> models = new ArrayList<>();
+        for (ZoneEntity entity : entities) {
+            models.add(ZoneModel.toModel(entity));
+        }
+
+        return models;
     }
 
     public ZoneModel getById(Long id) {
@@ -167,7 +167,6 @@ public class ZoneService {
         if (!isChildWithinParentBounds(
                 request.getOriginX(), request.getOriginY(),
                 request.getWidth(), request.getHeight(),
-                parentZone.getOriginX(), parentZone.getOriginY(),
                 parentZone.getWidth(), parentZone.getHeight()
         )) {
             throw new RuntimeException("Child zone out of parent zone bounds");
@@ -333,7 +332,6 @@ public class ZoneService {
         if (!isChildWithinParentBounds(
                 request.getOriginX(), request.getOriginY(),
                 request.getWidth(), request.getHeight(),
-                parentZone.getOriginX(), parentZone.getOriginY(),
                 parentZone.getWidth(), parentZone.getHeight()
         )) {
             throw new RuntimeException("Child zone out of parent zone bounds");
