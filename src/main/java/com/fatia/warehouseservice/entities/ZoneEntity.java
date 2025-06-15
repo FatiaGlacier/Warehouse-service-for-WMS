@@ -25,20 +25,31 @@ public class ZoneEntity {
     private String name;
 
     @Enumerated(EnumType.STRING)
-    private ZoneTypes type;
+    private ZoneType type;
 
-    private int originX; // origin X relatively to parent
+    // origin X relatively to parent
+    // top-left point
+    private int originX;
 
-    private int originY; // origin Y relatively to parent
+    // origin Y relatively to parent
+    // top-left point
+    private int originY;
 
-    private int width; // X
+    private int width; // shortest side
 
-    private int height; // Y
+    private int length; // longest side
 
-    private String description;
+    //angle for rotating on map
+    @Column(nullable = false)
+    private Integer rotationAngle;// 0 90 180 270
 
-    @Column(name = "connected_node_id")
-    private String connectedNodeId;
+    //direction for entry node
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private FaceDirection faceDirection;
+
+    @Column(name = "node_id")
+    private String nodeId; // entry node to zone
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_zone_id")
@@ -51,4 +62,6 @@ public class ZoneEntity {
             mappedBy = "zone",
             cascade = CascadeType.ALL)
     private List<ShelfEntity> shelves;
+
+    private String description;
 }

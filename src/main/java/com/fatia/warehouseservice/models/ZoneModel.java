@@ -20,8 +20,10 @@ public class ZoneModel {
     private String type;
     private int originX;
     private int originY;
-    private int width; // X
-    private int height; // Y
+    private int width;
+    private int length;
+    private int rotationAngle;
+    private int faceDirection;
     private String description;
     private List<ShelfModel> shelves;
     private String connectedNodeId;
@@ -38,8 +40,10 @@ public class ZoneModel {
                 .originX(entity.getOriginX())
                 .originY(entity.getOriginY())
                 .width(entity.getWidth())
-                .height(entity.getHeight())
+                .length(entity.getLength())
                 .description(entity.getDescription())
+                .rotationAngle(entity.getRotationAngle())
+                .faceDirection(entity.getFaceDirection().ordinal())
                 .shelves(
                         entity.getShelves()
                                 .stream()
@@ -53,7 +57,7 @@ public class ZoneModel {
                                 .map(ZoneModel::toModel)
                                 .collect(Collectors.toList())
                 )
-                .connectedNodeId(entity.getConnectedNodeId())
+                .connectedNodeId(entity.getNodeId())
                 .build();
     }
 }

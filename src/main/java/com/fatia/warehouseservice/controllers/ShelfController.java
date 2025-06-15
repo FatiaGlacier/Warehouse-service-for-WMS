@@ -55,7 +55,8 @@ public class ShelfController {
     }
 
 
-    //TODO get-best-shelves
+    //TODO get-best-shelves after graph build
+    //@GetMapping("/get-best-")
 
     //TODO delete-shelf
     @DeleteMapping("/delete-shelf/{id}")

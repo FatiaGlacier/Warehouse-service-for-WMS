@@ -1,7 +1,8 @@
 package com.fatia.warehouseservice.services;
 
+import com.fatia.warehouseservice.entities.FaceDirection;
 import com.fatia.warehouseservice.entities.ZoneEntity;
-import com.fatia.warehouseservice.entities.ZoneTypes;
+import com.fatia.warehouseservice.entities.ZoneType;
 import com.fatia.warehouseservice.models.ZoneModel;
 import com.fatia.warehouseservice.repositories.ZoneRepository;
 import com.fatia.warehouseservice.requests.AddChildZoneRequest;
@@ -36,23 +37,45 @@ public class ZoneService {
     }
 
     //For checkin is child object within parent object bounds
-    public boolean isChildWithinParentBounds(
-            int childOriginX, int childOriginY, int childWidth, int childLength,
-            int parentWidth, int parentLength) {
+    public boolean isChildWithinParentBounds(ZoneEntity child, ZoneEntity parent) {
+        int rotationAngle = child.getRotationAngle();
 
-        return childOriginX >= 0
-                && childOriginY >= 0
-                && (childOriginX + childWidth) <= parentWidth
-                && (childOriginY + childLength) <= +parentLength;
+        int drawnWidth = (rotationAngle % 180 == 0) ? child.getWidth() : child.getLength();
+        int drawnLength = (rotationAngle % 180 == 0) ? child.getLength() : child.getWidth();
+
+        // Переводимо локальні координати дитини у глобальні
+        int childGlobalX = parent.getOriginX() + child.getOriginX();
+        int childGlobalY = parent.getOriginY() + child.getOriginY();
+
+        int parentMinX = parent.getOriginX();
+        int parentMinY = parent.getOriginY();
+        int parentMaxX = parentMinX + parent.getWidth();
+        int parentMaxY = parentMinY + parent.getLength();
+
+        int childMaxX = childGlobalX + drawnWidth;
+        int childMaxY = childGlobalY + drawnLength;
+
+        return childGlobalX >= parentMinX
+                && childGlobalY >= parentMinY
+                && childMaxX <= parentMaxX
+                && childMaxY <= parentMaxY;
     }
 
     public static boolean isOverlappingWithOthers(
             ZoneEntity targetZone,
             List<ZoneEntity> siblings) {
+
         int targetOriginX = targetZone.getOriginX();
-        int targetEndX = targetOriginX + targetZone.getWidth();
         int targetOriginY = targetZone.getOriginY();
-        int targetEndY = targetOriginY + targetZone.getHeight();
+        int targetDrawnWidth = targetZone.getRotationAngle() % 180 == 0
+                ? targetZone.getWidth()
+                : targetZone.getLength();
+        int targetDrawnLength = targetZone.getRotationAngle() % 180 == 0
+                ? targetZone.getLength()
+                : targetZone.getWidth();
+
+        int targetEndX = targetOriginX + targetDrawnWidth;
+        int targetEndY = targetOriginY + targetDrawnLength;
 
         for (ZoneEntity sibling : siblings) {
             if (sibling.getId().equals(targetZone.getId())
@@ -61,9 +84,16 @@ public class ZoneService {
             }
 
             int siblingOriginX = sibling.getOriginX();
-            int siblingEndX = siblingOriginX + sibling.getWidth();
             int siblingOriginY = sibling.getOriginY();
-            int siblingEndY = siblingOriginY + sibling.getHeight();
+            int siblingDrawnWidth = sibling.getRotationAngle() % 180 == 0
+                    ? sibling.getWidth()
+                    : sibling.getLength();
+            int siblingDrawnLength = sibling.getRotationAngle() % 180 == 0
+                    ? sibling.getLength()
+                    : sibling.getWidth();
+
+            int siblingEndX = siblingOriginX + siblingDrawnWidth;
+            int siblingEndY = siblingOriginY + siblingDrawnLength;
 
             boolean xOverlap = targetOriginX < siblingEndX && targetEndX > siblingOriginX;
             boolean yOverlap = targetOriginY < siblingEndY && targetEndY > siblingOriginY;
@@ -100,12 +130,12 @@ public class ZoneService {
                 request.getOriginX(),
                 request.getOriginY(),
                 request.getWidth(),
-                request.getHeight())
+                request.getLength())
         ) {
             throw new RuntimeException("Zone with invalid origin");
         }
 
-        List<ZoneEntity> allParentZones = zoneRepository.findByTypeIn(ZoneTypes.getWarehouseChildrenZones());
+        List<ZoneEntity> allParentZones = zoneRepository.findByTypeIn(ZoneType.getWarehouseChildrenZones());
 
         ZoneEntity overLappingNewZoneTestEntity = ZoneEntity
                 .builder()
@@ -113,7 +143,8 @@ public class ZoneService {
                 .originX(request.getOriginX())
                 .originY(request.getOriginY())
                 .width(request.getWidth())
-                .height(request.getHeight())
+                .length(request.getLength())
+                .rotationAngle(request.getRotationAngle())
                 .build();
 
         if (isOverlappingWithOthers(
@@ -123,7 +154,7 @@ public class ZoneService {
             throw new RuntimeException("Zone overlapping with other zones");
         }
 
-        if (!ZoneTypes.isValidZoneType(request.getType())) {
+        if (!ZoneType.isValidZoneType(request.getType())) {
             throw new RuntimeException("Invalid type " + request.getType());
         }
 
@@ -135,21 +166,24 @@ public class ZoneService {
                 .builder()
                 .name(name)
                 .uuid(uuid)
-                .type(ZoneTypes.valueOf(request.getType().toUpperCase()))
+                .type(ZoneType.valueOf(request.getType().toUpperCase()))
                 .originX(request.getOriginX())
                 .originY(request.getOriginY())
                 .width(request.getWidth())
-                .height(request.getHeight())
+                .length(request.getLength())
                 .description(request.getDescription())
+                .rotationAngle(request.getRotationAngle())
+                .faceDirection(FaceDirection.valueOf(request.getFaceDirection()))
                 .build();
 
         zoneRepository.saveAndFlush(entity);
 
-        return ZoneModel.toModel(entity);
+        ZoneModel zoneModel = ZoneModel.toModel(entity);
+        return zoneModel;
     }
 
     public ZoneModel addChildZone(AddChildZoneRequest request) {
-        if (!ZoneTypes.isValidZoneType(request.getType())) {
+        if (!ZoneType.isValidZoneType(request.getType())) {
             throw new RuntimeException("Invalid type " + request.getType());
         }
 
@@ -164,31 +198,31 @@ public class ZoneService {
 
         ZoneEntity parentZone = optionalZoneEntity.get();
 
-        if (!isChildWithinParentBounds(
-                request.getOriginX(), request.getOriginY(),
-                request.getWidth(), request.getHeight(),
-                parentZone.getWidth(), parentZone.getHeight()
-        )) {
-            throw new RuntimeException("Child zone out of parent zone bounds");
-        }
-
-        ZoneEntity overLappingNewChildTestEntity = ZoneEntity
+        ZoneEntity newChildTestEntity = ZoneEntity
                 .builder()
                 .id(0L)
                 .originX(request.getOriginX())
                 .originY(request.getOriginY())
                 .width(request.getWidth())
-                .height(request.getHeight())
+                .length(request.getLength())
+                .rotationAngle(request.getRotationAngle())
                 .build();
 
+        if (!isChildWithinParentBounds(
+                newChildTestEntity,
+                parentZone
+        )) {
+            throw new RuntimeException("Child zone out of parent zone bounds");
+        }
+
         if (isOverlappingWithOthers(
-                overLappingNewChildTestEntity,
+                newChildTestEntity,
                 parentZone.getChildZones()
         )) {
             throw new RuntimeException("Child zone overlapping with sibling zones");
         }
 
-        ZoneTypes childType = ZoneTypes.valueOf(request.getType());
+        ZoneType childType = ZoneType.valueOf(request.getType());
         if (!parentZone.getType().getAllowedChildren().contains(childType)) {
             throw new RuntimeException("Child zone with type " + request.getType()
                     + " is not allowed to be child of " + parentZone.getType());
@@ -209,14 +243,18 @@ public class ZoneService {
                 .originX(request.getOriginX())
                 .originY(request.getOriginY())
                 .width(request.getWidth())
-                .height(request.getHeight())
+                .length(request.getLength())
                 .description(request.getDescription())
+                .rotationAngle(request.getRotationAngle())
+                .faceDirection(FaceDirection.valueOf(request.getFaceDirection()))
                 .parentZone(parentZone)
                 .build();
 
         zoneRepository.saveAndFlush(childZone);
 
-        return ZoneModel.toModel(childZone);
+        ZoneModel zoneModel = ZoneModel.toModel(childZone);
+
+        return zoneModel;
     }
 
     public UpdateZoneReponse updateParentZone(Long id, UpdateParentZoneRequest request) {
@@ -227,12 +265,12 @@ public class ZoneService {
                 request.getOriginX(),
                 request.getOriginY(),
                 request.getWidth(),
-                request.getHeight())
+                request.getLength())
         ) {
             throw new RuntimeException("Zone with invalid origin");
         }
 
-        if (!ZoneTypes.isValidZoneType(request.getType())) {
+        if (!ZoneType.isValidZoneType(request.getType())) {
             throw new RuntimeException("Invalid type " + request.getType());
         }
 
@@ -247,7 +285,7 @@ public class ZoneService {
             String newName = request.getType() + "-" + entity.getUuid();
             entity.setName(newName);
 
-            entity.setType(ZoneTypes.valueOf(request.getType().toUpperCase()));
+            entity.setType(ZoneType.valueOf(request.getType().toUpperCase()));
             warnings.add("Zone type was changed");
             status = "OK_WITH_WARNINGS";
         }
@@ -255,7 +293,7 @@ public class ZoneService {
         int oldX = entity.getOriginX();
         int oldY = entity.getOriginY();
 
-        List<ZoneEntity> allParentZones = zoneRepository.findByTypeIn(ZoneTypes.getWarehouseChildrenZones());
+        List<ZoneEntity> allParentZones = zoneRepository.findByTypeIn(ZoneType.getWarehouseChildrenZones());
 
         ZoneEntity overLappingNewParentTestEntity = ZoneEntity
                 .builder()
@@ -263,20 +301,21 @@ public class ZoneService {
                 .originX(request.getOriginX())
                 .originY(request.getOriginY())
                 .width(request.getWidth())
-                .height(request.getHeight())
+                .length(request.getLength())
                 .build();
 
         if (!isOverlappingWithOthers(
                 overLappingNewParentTestEntity,
                 allParentZones
         )) {
+            entity.setRotationAngle(request.getRotationAngle());
             entity.setOriginX(request.getOriginX());
             entity.setOriginY(request.getOriginY());
             warnings.add("Zone origin was changed");
 
             if (entity.getChildZones().isEmpty()) {
                 entity.setWidth(request.getWidth());
-                entity.setHeight(request.getHeight());
+                entity.setLength(request.getLength());
                 warnings.add("Bounds was changed");
             } else {
                 warnings.add("Bounds was not changed. Zone has " + entity.getChildZones().size() + " child zones");
@@ -298,8 +337,11 @@ public class ZoneService {
             status = "OK_WITH_WARNINGS";
         }
 
+        entity.setFaceDirection(FaceDirection.valueOf(request.getFaceDirection()));
         entity.setDescription(request.getDescription());
         zoneRepository.saveAndFlush(entity);
+
+        ZoneModel zoneModel = ZoneModel.toModel(entity);
 
         return UpdateZoneReponse
                 .builder()
@@ -329,10 +371,19 @@ public class ZoneService {
 
         ZoneEntity parentZone = optionalParentZoneEntity.get();
 
+        ZoneEntity newChildTestEntity = ZoneEntity
+                .builder()
+                .id(id)
+                .originX(request.getOriginX())
+                .originY(request.getOriginY())
+                .width(request.getWidth())
+                .length(request.getLength())
+                .rotationAngle(request.getRotationAngle())
+                .build();
+
         if (!isChildWithinParentBounds(
-                request.getOriginX(), request.getOriginY(),
-                request.getWidth(), request.getHeight(),
-                parentZone.getWidth(), parentZone.getHeight()
+                newChildTestEntity,
+                parentZone
         )) {
             throw new RuntimeException("Child zone out of parent zone bounds");
         }
@@ -340,23 +391,17 @@ public class ZoneService {
         ZoneEntity childZone = optionalChildZoneEntity.get();
 
         if (childZone.getShelves().isEmpty()) {
-            ZoneEntity overLappingNewChildTestEntity = ZoneEntity
-                    .builder()
-                    .id(id)
-                    .originX(request.getOriginX())
-                    .originY(request.getOriginY())
-                    .width(request.getWidth())
-                    .height(request.getHeight())
-                    .build();
+
 
             if (!isOverlappingWithOthers(
-                    overLappingNewChildTestEntity,
+                    newChildTestEntity,
                     parentZone.getChildZones()
             )) {
+                childZone.setRotationAngle(request.getRotationAngle());
                 childZone.setOriginX(request.getOriginX());
                 childZone.setOriginY(request.getOriginY());
                 childZone.setWidth(request.getWidth());
-                childZone.setHeight(request.getHeight());
+                childZone.setLength(request.getLength());
                 warnings.add("Zone origin and bounds was changed");
             } else {
                 warnings.add("Zone overlaps with siblings zone bounds");
@@ -367,8 +412,11 @@ public class ZoneService {
             status = "OK_WITH_WARNINGS";
         }
 
+        childZone.setFaceDirection(FaceDirection.valueOf(request.getFaceDirection()));
         childZone.setDescription(request.getDescription());
         zoneRepository.saveAndFlush(childZone);
+
+        ZoneModel zoneModel = ZoneModel.toModel(childZone);
 
         return UpdateZoneReponse
                 .builder()

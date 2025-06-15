@@ -14,6 +14,8 @@ public class UpdateChildZoneRequest {
     private int originX;
     private int originY;
     private int width; // X
-    private int height; // Y
+    private int length; // Y
+    private int rotationAngle;
+    private String faceDirection;
     private String description;
 }

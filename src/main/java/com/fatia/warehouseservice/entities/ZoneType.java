@@ -3,7 +3,7 @@ package com.fatia.warehouseservice.entities;
 import java.util.Arrays;
 import java.util.List;
 
-public enum ZoneTypes {
+public enum ZoneType {
     WAREHOUSE,
     STORAGE,
     COLUMN,
@@ -12,7 +12,7 @@ public enum ZoneTypes {
     PARKING,
     PARKING_SPOT;
 
-    public List<ZoneTypes> getAllowedChildren() {
+    public List<ZoneType> getAllowedChildren() {
         return switch (this) {
             case STORAGE -> List.of(COLUMN);
             case PARKING -> List.of(PARKING_SPOT);
@@ -21,7 +21,7 @@ public enum ZoneTypes {
         };
     }
 
-    public List<ZoneTypes> getAllowedParents() {
+    public List<ZoneType> getAllowedParents() {
         return switch (this) {
             case COLUMN -> List.of(STORAGE);
             case PARKING_SPOT -> List.of(PARKING);
@@ -29,13 +29,13 @@ public enum ZoneTypes {
         };
     }
 
-    public static List<ZoneTypes> getWarehouseChildrenZones() {
+    public static List<ZoneType> getWarehouseChildrenZones() {
         return List.of(STORAGE, PARKING, UNLOADING, LOADING);
     }
 
     //For zone types validation
     public static boolean isValidZoneType(String type) {
-        return Arrays.stream(ZoneTypes.values())
+        return Arrays.stream(ZoneType.values())
                 .anyMatch(z -> z.name().equalsIgnoreCase(type));
     }
 }
